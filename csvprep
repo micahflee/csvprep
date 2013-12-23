@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 import sys, os, csv
+    
+overview_headers = ['text', 'title', 'url', 'id', 'tags']
 
 def ask_question(question):
     while True:
@@ -9,6 +11,19 @@ def ask_question(question):
             return True
         if s == 'n' or s == 'N':
             return False
+
+def select_from_list(question, options):
+    for i, option in enumerate(options):
+        print '  '+str(i)+': '+option
+
+    valid = False
+    while not valid:
+        s = raw_input(question+' '+str(range(len(options)))+' ')
+        n = int(s)
+        if n >= 0 and n < len(options):
+            valid = True
+    print ''
+    return n
 
 def define_headers(first_row):
     new_headers = []
@@ -20,29 +35,15 @@ def define_headers(first_row):
     return new_headers
 
 def rename_headers(headers):
-    overview_headers = ['text', 'title', 'url', 'id', 'tags']
-
-    new_headers = []
-    for header in headers:
-        new_headers.append(header)
+    new_headers = headers[:]
 
     while True:
         print 'Overview ignores all headers except these:', overview_headers
         print 'Here are your current headers:', new_headers
-        if ask_question('Would you like to rename any of your headers?'):
-            print 'Which header would you like to rename?'
-            i = 0
-            for header in new_headers:
-                print str(i)+': '+header
-                i += 1
+        print ''
 
-            valid = False
-            while not valid:
-                s = raw_input('Which header would you like to rename? (0-'+str(len(new_headers)-1)+') ')
-                n = int(s)
-                if n >= 0 and n < len(new_headers):
-                    valid = True
-            
+        if ask_question('Would you like to rename any of your headers?'):
+            n = select_from_list('Which header would you like to rename?', new_headers)
             s = raw_input('What should the new header be? ');
             new_headers[n] = s
             print ''
@@ -50,23 +51,78 @@ def rename_headers(headers):
         else:
             return new_headers
 
+def merge_columns(headers):
+    merge_headers = []
+    for i, header in enumerate(headers):
+        merge_headers.append([i])
+    
+    while True:
+        # build current list of columns
+        columns = []
+        for col in merge_headers:
+            display = []
+            for i in col:
+                display.append(headers[i])
+            columns.append(', '.join(display))
+
+
+        print 'Overview ignores all headers except these:', overview_headers
+        print 'Here are your current headers:', columns
+        print ''
+
+        option = select_from_list('Which would you like to do?', [
+            'Merge a column into another column', 
+            'Explode a merged column', 
+            'All done']
+        )
+
+        # merge a column into another column
+        if option == 0:
+            base_col = select_from_list('Which column would you like to merge into?', columns)
+            col = select_from_list('And which column would you like to merge?', columns)
+            if base_col == col:
+                print "Error: You can't merge a column into itself"
+                print ''
+            else:
+                merge_headers[base_col].extend(merge_headers[col])
+                merge_headers.pop(col)
+
+        # explode a merged column
+        elif option == 1:
+            col = select_from_list('Which column would you like to explode?', columns)
+            if len(merge_headers[col]) == 1:
+                print "Error: That column only has one value already"
+                print ''
+            else:
+                for val in merge_headers[col]:
+                    merge_headers.append([val])
+                merge_headers.pop(col)
+
+        # all done
+        else:
+            return merge_headers
+
+def write_csv(has_headers, headers, merge, input_filename, output_filename):
+    pass
+
 if __name__ == '__main__':
     # arguments
-    if len(sys.argv) < 2:
-        print 'Usage:', sys.argv[0], '[csv filename]'
+    if len(sys.argv) < 3:
+        print 'Usage:', sys.argv[0], '[input csv] [output csv]'
         sys.exit()
     
     # validate filename
-    filename = sys.argv[1]
-    if not os.path.isfile(filename):
-        print filename, 'is not a file'
+    input_filename = sys.argv[1]
+    output_filename = sys.argv[2]
+    if not os.path.isfile(input_filename):
+        print input_filename, 'is not a file'
         sys.exit()
 
     # welcome
     print 'Welcome to CSV Prep, a tool to help you format your CSV for importing into Overview.\n'
     
     # is first line header?
-    f = open(filename, 'r')
+    f = open(input_filename, 'r')
     reader = csv.reader(f)
     first_row = reader.next()
     
@@ -84,5 +140,11 @@ if __name__ == '__main__':
     # rename headers step
     headers = rename_headers(headers)
     print ''
-            
 
+    # merge columns step
+    merge_headers = merge_columns(headers)
+    print ''
+
+    # write the output csv
+    print 'All done, now saving output file...'
+    write_csv(has_headers, headers, merge_headers, input_filename, output_filename)
