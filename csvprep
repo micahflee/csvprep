@@ -1,0 +1,88 @@
+#!/usr/bin/env python
+
+import sys, os, csv
+
+def ask_question(question):
+    while True:
+        s = raw_input(question+' (y/n): ')
+        if s == 'y' or s == 'Y':
+            return True
+        if s == 'n' or s == 'N':
+            return False
+
+def define_headers(first_row):
+    new_headers = []
+    for col in first_row:
+        s = raw_input('What is the header for this line?\nColumn: '+col+'\nHeader: ')
+        new_headers.append(s)
+        print ''
+    print 'Here are the new headers:', new_headers
+    return new_headers
+
+def rename_headers(headers):
+    overview_headers = ['text', 'title', 'url', 'id', 'tags']
+
+    new_headers = []
+    for header in headers:
+        new_headers.append(header)
+
+    while True:
+        print 'Overview ignores all headers except these:', overview_headers
+        print 'Here are your current headers:', new_headers
+        if ask_question('Would you like to rename any of your headers?'):
+            print 'Which header would you like to rename?'
+            i = 0
+            for header in new_headers:
+                print str(i)+': '+header
+                i += 1
+
+            valid = False
+            while not valid:
+                s = raw_input('Which header would you like to rename? (0-'+str(len(new_headers)-1)+') ')
+                n = int(s)
+                if n >= 0 and n < len(new_headers):
+                    valid = True
+            
+            s = raw_input('What should the new header be? ');
+            new_headers[n] = s
+            print ''
+
+        else:
+            return new_headers
+
+if __name__ == '__main__':
+    # arguments
+    if len(sys.argv) < 2:
+        print 'Usage:', sys.argv[0], '[csv filename]'
+        sys.exit()
+    
+    # validate filename
+    filename = sys.argv[1]
+    if not os.path.isfile(filename):
+        print filename, 'is not a file'
+        sys.exit()
+
+    # welcome
+    print 'Welcome to CSV Prep, a tool to help you format your CSV for importing into Overview.\n'
+    
+    # is first line header?
+    f = open(filename, 'r')
+    reader = csv.reader(f)
+    first_row = reader.next()
+    
+    print first_row
+    has_headers = ask_question('Was that a list of CSV headers?')
+    print ''
+
+    if has_headers:
+        headers = first_row
+    else:
+        headers = define_headers(first_row)
+        while not ask_question('Are these headers good?'):
+            headers = define_headers(first_row)
+    
+    # rename headers step
+    headers = rename_headers(headers)
+    print ''
+            
+
