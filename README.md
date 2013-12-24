@@ -8,7 +8,7 @@ I wrote it quickly and fairly sloppily with a klunky user interface, but it work
 
 ## Usage
 
-    Usage: /home/micah/firstlook_projects/csvprep/csvprep input.csv output.csv [--escape_quotes]
+    Usage: ./csvprep input.csv output.csv [--escape_quotes]
       The input and output CSV filenames are required.
       Add --escape_quotes if the input CSV contains quotes escaped like '\"' instead of '""'
 
