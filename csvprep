@@ -103,7 +103,52 @@ def merge_columns(headers):
             return merge_headers
 
 def write_csv(has_headers, headers, merge, input_filename, output_filename):
-    pass
+    print 'Input csv already have headers?', has_headers
+    print 'Here are the headers:', headers
+    print 'Here is the merge data:', merge
+    print ''
+
+    # open file for writing
+    out_file = open(output_filename, 'wb')
+    writer = csv.writer(out_file)
+
+    # write the headers
+    final_headers = []
+    for col in merge:
+        final_headers.append(headers[col[0]])
+    writer.writerow(final_headers)
+
+    # open file for reading
+    in_file = open(input_filename, 'rb')
+    reader = csv.reader(in_file)
+    
+    row_num = 0
+    first = True
+    for in_row in reader:
+        # if the input csv has headers, skip the first row
+        if has_headers and first:
+            first = False
+            continue
+        
+        # process the row into something that can be written
+        out_row = []
+        for col in merge:
+            if len(col) == 1:
+                out_row.append(in_row[col[0]])
+            else:
+                val = ''
+                for i in col:
+                    val += headers[i]+':\n'
+                    val += in_row[i]+'\n\n'
+                out_row.append(val)
+
+        # write the row
+        writer.writerow(out_row)
+        sys.stdout.write('\rWriting row #'+str(row_num))
+        row_num += 1
+
+    print '\n'
+    print 'CSV file written: '+output_filename
 
 if __name__ == '__main__':
     # arguments
@@ -122,7 +167,7 @@ if __name__ == '__main__':
     print 'Welcome to CSV Prep, a tool to help you format your CSV for importing into Overview.\n'
     
     # is first line header?
-    f = open(input_filename, 'r')
+    f = open(input_filename, 'rb')
     reader = csv.reader(f)
     first_row = reader.next()
     
@@ -146,5 +191,4 @@ if __name__ == '__main__':
     print ''
 
     # write the output csv
-    print 'All done, now saving output file...'
     write_csv(has_headers, headers, merge_headers, input_filename, output_filename)
